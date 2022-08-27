@@ -20,10 +20,10 @@ const Entry = (props) =>{
     <div className=" col-span-4 overflow-auto px-2">
         {props.description===""?"-none-":props.description}
     </div>
-    <div className=" col-span-3 flex flex-wrap gap-2 overflow-auto  px-2">
+    <div className=" col-span-3 flex flex-wrap gap-2 w-full  px-2 ">
 
         {props.file_names.length===0?"-none-":props.file_names.map( (name,index)=>{
-            return <p className={"hover:text-green-500"} onClick={(event)=>{
+            return <p className={"break-all hover:text-green-500 "} onClick={(event)=>{
                 show_raw_file(event.target.innerHTML)
             }
             } key={index}>{name}</p>

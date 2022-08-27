@@ -1,12 +1,13 @@
 import axios from "axios"
 import {useEffect, useState} from "react";
-import { useDispatch } from "react-redux/es/hooks/useDispatch";
+import {useDispatch} from "react-redux/es/hooks/useDispatch";
 
 const config = {
-    headers: { Authorization: `token ${
+    headers: {
+        Authorization: `token ${
             process.env.REACT_APP_GIT_API_TOKEN
         }`
-        
+
     }
 };
 
@@ -16,7 +17,20 @@ const construct_last_forks = async (forks_url) => {
 
     let forks = await axios.get(forks_url, config)
 
+
+    let has_next = forks.headers.link
+
+
+    if (has_next !== undefined) {
+
+        let last_page = parseInt(has_next.split(", ")[1].split("page=")[1].split(">")[0])
+
+        forks = await axios.get(forks_url + `?page=${last_page}`, config)
+
+    }
+
     forks = forks.data
+
 
     forks = forks.slice(forks.length - 3, forks.length)
 
@@ -72,8 +86,8 @@ const useGetGistByUsername = () => {
                 id: current_data.id,
                 owner,
                 description,
-                file_names:file_names_array,
-                languages:Array.from(languages),
+                file_names: file_names_array,
+                languages: Array.from(languages),
                 files: file_objects,
                 forks: last_forks
             })
@@ -86,37 +100,61 @@ const useGetGistByUsername = () => {
     }
 
     const get_gist_by_username = async (username, callback) => {
-    
-         dispatch({
-            type:"SET_LOADING",
-            payload:{
-                msg:`Fetching gists of ${username} ... `
-            }
-         })
-         try{
-    
-        let data = await axios.get(`https://api.github.com/users/${username}/gists`, config)
-        let parsed_gist_data = await construct_gist_data(data.data)
-        callback(parsed_gist_data)
 
         dispatch({
-            type:"END_LOADING",
-            payload:{
-                msg:""
+            type: "SET_LOADING",
+            payload: {
+                msg: `Fetching gists of ${username} ... `
             }
-         })
+        })
+        try {
 
-         }
-         catch(error){
-            dispatch({
-                type:"SET_ERROR",
-                payload:{
-                    msg:error
+            let data = await axios.get(`https://api.github.com/users/${username}/gists?per_page=100`, config)
+
+            let has_next = data.headers.link
+
+            let total_data = [... data.data]
+
+
+            if (has_next !== undefined) {
+                let last_page = parseInt(has_next.split(", ")[1].split("&page=")[1].split(">")[0])
+            
+
+                for (let k = 2; k < last_page; k++) {
+                    let data = await axios.get(`https://api.github.com/users/${username}/gists?per_page=100&page=${k}`, config)
+                    total_data = [
+                        ... total_data,
+                        ...data.data
+                    ]
+
+               
+
                 }
-             })
 
-         }
-        
+            }
+
+
+            let parsed_gist_data = await construct_gist_data(total_data)
+
+            callback(parsed_gist_data)
+
+            dispatch({
+                type: "END_LOADING",
+                payload: {
+                    msg: ""
+                }
+            })
+
+        } catch (error) {
+            dispatch({
+                type: "SET_ERROR",
+                payload: {
+                    msg: error
+                }
+            })
+
+        }
+
 
     }
 
